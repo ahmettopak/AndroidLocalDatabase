@@ -15,9 +15,7 @@
         <activity
             android:name=".AdminPanelActivity"
             android:exported="true" />
-        <activity
-            android:name=".RegisterActivity"
-            android:exported="true" />
+
         <activity
             android:name=".MainActivity"
             android:exported="true" />

@@ -15,8 +15,6 @@ public class LoginActivity extends AppCompatActivity {
     EditText nameText;
     EditText passwordText;
     Button loginButton;
-    TextView regsistertextview;
-
     private String adminName = "elk";
     private  String adminPassword = "2005";
     @Override
@@ -28,7 +26,6 @@ public class LoginActivity extends AppCompatActivity {
         passwordText = findViewById(R.id.passwordEditText);
         loginButton = findViewById(R.id.loginButton);
 
-        regsistertextview = findViewById(R.id.registerTextView);
         DatabaseHelper dbHelper = new DatabaseHelper(this);
 
         loginButton.setOnClickListener(new View.OnClickListener() {
@@ -45,6 +42,7 @@ public class LoginActivity extends AppCompatActivity {
 
                         startActivity(intent);
                     }
+                    //Normal user
                     else{
                         if (dbHelper.checkUser(String.valueOf(nameText.getText()), String.valueOf(passwordText.getText()))){
                             Intent intent = new Intent(LoginActivity.this, MainActivity.class);
@@ -62,14 +60,5 @@ public class LoginActivity extends AppCompatActivity {
             }
         });
 
-        regsistertextview.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View view) {
-                Intent intent = new Intent(LoginActivity.this, RegisterActivity.class);
-
-                startActivity(intent);
-
-            }
-        });
     }
 }
