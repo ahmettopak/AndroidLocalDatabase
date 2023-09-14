@@ -56,6 +56,8 @@ public class LoginActivity extends AppCompatActivity {
                     }
 
 
+                    nameText.setText("");
+                    passwordText.setText("");
                 }
             }
         });

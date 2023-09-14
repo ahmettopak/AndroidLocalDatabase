@@ -6,6 +6,7 @@ import androidx.recyclerview.widget.RecyclerView;
 
 import android.os.Bundle;
 import android.view.View;
+import android.view.ViewGroup;
 import android.widget.ArrayAdapter;
 import android.widget.Button;
 import android.widget.EditText;
@@ -18,6 +19,7 @@ import java.util.List;
 
 import android.widget.ArrayAdapter;
 import android.widget.ListView;
+import android.widget.TextView;
 import android.widget.Toast;
 
 
@@ -41,21 +43,29 @@ public class AdminPanelActivity extends AppCompatActivity {
 
         DatabaseHelper dbHelper = new DatabaseHelper(this);
 
-        // ListView'i tanımlayın
         ListView listView = findViewById(R.id.userListview);
 
-        // Kullanıcıları veritabanından alın
         DatabaseHelper databaseHelper = new DatabaseHelper(this);
         userList = databaseHelper.getAllUsers();
 
-        // Liste görünümünü doldurun
-         adapter = new ArrayAdapter<>(this, android.R.layout.simple_list_item_1, userList);
-            listView.setAdapter(adapter);
 
-        // Kullanıcıyı seçtiğinizde silmek için bir dinleyici ekleyin
+        adapter = new ArrayAdapter<User>(this, android.R.layout.simple_list_item_1, userList) {
+            @Override
+            public View getView(int position, View convertView, ViewGroup parent) {
+                View view = super.getView(position, convertView, parent);
+                User user = getItem(position);
+
+                // TextView'i bulun ve kullanıcı adı ile şifreyi ayarlayın
+                TextView textView = view.findViewById(android.R.id.text1);
+                textView.setText("Name: "+user.getUsername() + " \n Password: "+ user.getPassword());
+
+                return view;
+            }
+        };
+        listView.setAdapter(adapter);
+
         listView.setOnItemClickListener((parent, view, position, id) -> {
             int selectedUserId = userList.get(position).getId();
-            // Seçilen kullanıcıyı veritabanından sil ve liste görünümünden kaldır
             databaseHelper.deleteUser(selectedUserId);
             adapter.remove(userList.get(position));
             adapter.notifyDataSetChanged();
@@ -72,7 +82,7 @@ public class AdminPanelActivity extends AppCompatActivity {
                     dbHelper.addUser(String.valueOf(nameText.getText()), String.valueOf(passwordText.getText()));
 
                     userList = databaseHelper.getAllUsers();
-                    adapter.notifyDataSetChanged();
+                    adapter.notify();
 
                 }
             }
