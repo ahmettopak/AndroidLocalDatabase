@@ -15,6 +15,9 @@ import com.ahmet.androidlocaldatabase.database.DatabaseUtils;
 import com.ahmet.androidlocaldatabase.database.Role;
 import com.ahmet.androidlocaldatabase.database.User;
 import com.ahmet.androidlocaldatabase.database.UserRepository;
+import com.ahmet.androidlocaldatabase.database.exceptions.DatabaseConnectionException;
+import com.ahmet.androidlocaldatabase.database.exceptions.UserNotFoundException;
+
 
 public class LoginActivity extends AppCompatActivity {
     private EditText usernameEditText;
@@ -32,9 +35,6 @@ public class LoginActivity extends AppCompatActivity {
         loginButton = findViewById(R.id.loginButton);
 
         userRepository = new UserRepository(this);
-
-        userRepository.addUser(new User(0, "a", "a", Role.SUPER_USER));
-
         loginButton.setOnClickListener(v -> {
             String username = usernameEditText.getText().toString().trim();
             String password = passwordEditText.getText().toString().trim();
@@ -44,14 +44,20 @@ public class LoginActivity extends AppCompatActivity {
                 return;
             }
 
-            User user = userRepository.getUser(username, password);
-            if (user == null) {
-                Toast.makeText(this, "Hatalı kullanıcı adı veya şifre!", Toast.LENGTH_SHORT).show();
-                return;
-            }
+            try {
+                User user = userRepository.getUser(username , password);
+                if (user == null) {
+                    throw new UserNotFoundException("Kullanıcı adı veya şifre hatalı.");
+                }
 
-            navigateToRoleSpecificActivity(user.getRole());
+                navigateToRoleSpecificActivity(user.getRole());
+            } catch (UserNotFoundException e) {
+                Toast.makeText(this, e.getMessage(), Toast.LENGTH_SHORT).show();
+            } catch (DatabaseConnectionException e) {
+                Toast.makeText(this, "Veritabanı hatası: " + e.getMessage(), Toast.LENGTH_SHORT).show();
+            }
         });
+
     }
 
     private void navigateToRoleSpecificActivity(Role role) {

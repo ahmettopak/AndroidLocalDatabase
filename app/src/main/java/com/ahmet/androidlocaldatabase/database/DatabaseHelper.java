@@ -3,13 +3,14 @@ package com.ahmet.androidlocaldatabase.database;
 import android.content.ContentValues;
 import android.content.Context;
 import android.database.Cursor;
+import android.database.SQLException;
 import android.database.sqlite.SQLiteDatabase;
 import android.database.sqlite.SQLiteOpenHelper;
+import android.util.Log;
 import android.widget.Toast;
 
 import java.util.ArrayList;
 import java.util.List;
-
 
 public class DatabaseHelper extends SQLiteOpenHelper {
 
@@ -28,17 +29,27 @@ public class DatabaseHelper extends SQLiteOpenHelper {
 
     @Override
     public void onCreate(SQLiteDatabase db) {
-        String CREATE_USERS_TABLE = "CREATE TABLE " + TABLE_USERS + " (" +
-                COLUMN_ID + " INTEGER PRIMARY KEY AUTOINCREMENT, " +
-                COLUMN_USERNAME + " TEXT NOT NULL, " +
-                COLUMN_PASSWORD + " TEXT NOT NULL, " +
-                COLUMN_ROLE + " TEXT NOT NULL)";
-        db.execSQL(CREATE_USERS_TABLE);
+        try {
+            String CREATE_USERS_TABLE = "CREATE TABLE " + TABLE_USERS + " (" +
+                    COLUMN_ID + " INTEGER PRIMARY KEY AUTOINCREMENT, " +
+                    COLUMN_USERNAME + " TEXT NOT NULL, " +
+                    COLUMN_PASSWORD + " TEXT NOT NULL, " +
+                    COLUMN_ROLE + " TEXT NOT NULL)";
+            db.execSQL(CREATE_USERS_TABLE);
+        } catch (SQLException e) {
+            Log.e("DatabaseHelper", "Error creating table: " + e.getMessage());
+            throw new RuntimeException("Error creating database table", e);
+        }
     }
 
     @Override
     public void onUpgrade(SQLiteDatabase db, int oldVersion, int newVersion) {
-        db.execSQL("DROP TABLE IF EXISTS " + TABLE_USERS);
-        onCreate(db);
+        try {
+            db.execSQL("DROP TABLE IF EXISTS " + TABLE_USERS);
+            onCreate(db);
+        } catch (SQLException e) {
+            Log.e("DatabaseHelper", "Error upgrading database: " + e.getMessage());
+            throw new RuntimeException("Error upgrading database", e);
+        }
     }
 }

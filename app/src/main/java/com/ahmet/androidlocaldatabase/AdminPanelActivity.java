@@ -23,6 +23,11 @@ import com.ahmet.androidlocaldatabase.database.DatabaseUtils;
 import com.ahmet.androidlocaldatabase.database.Role;
 import com.ahmet.androidlocaldatabase.database.User;
 import com.ahmet.androidlocaldatabase.database.UserRepository;
+import com.ahmet.androidlocaldatabase.database.exceptions.DatabaseConnectionException;
+import com.ahmet.androidlocaldatabase.database.exceptions.UserAlreadyExistsException;
+import com.ahmet.androidlocaldatabase.database.exceptions.WeakPasswordException;
+
+
 public class AdminPanelActivity extends AppCompatActivity {
     private EditText usernameEditText;
     private EditText passwordEditText;
@@ -34,7 +39,7 @@ public class AdminPanelActivity extends AppCompatActivity {
     private List<User> users;
     private ArrayAdapter<User> adapter;
     private User selectedUser;
-    private User currentUser; // Giriş yapan kullanıcı
+    private User currentUser;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -56,7 +61,7 @@ public class AdminPanelActivity extends AppCompatActivity {
         roleSpinner.setAdapter(roleAdapter);
 
         // Giriş yapan kullanıcıyı tanımla
-        currentUser = getCurrentUser();  // Burada, giriş yapan kullanıcıyı alıyoruz (Örn: SharedPreferences ile)
+        currentUser = getCurrentUser();
 
         loadUserList();
 
@@ -71,11 +76,19 @@ public class AdminPanelActivity extends AppCompatActivity {
                 return;
             }
 
-            // Yeni kullanıcı ekle
-            userRepository.addUser(new User(0, username, password, role));
-            loadUserList();
-            clearInputs();
+            try {
+                userRepository.addUser(new User(0, username, password, role));
+                loadUserList();
+                clearInputs();
+            } catch (UserAlreadyExistsException e) {
+                Toast.makeText(this, e.getMessage(), Toast.LENGTH_SHORT).show();
+            } catch (WeakPasswordException e) {
+                Toast.makeText(this, e.getMessage(), Toast.LENGTH_SHORT).show();
+            } catch (DatabaseConnectionException e) {
+                Toast.makeText(this, "Veritabanı hatası: " + e.getMessage(), Toast.LENGTH_SHORT).show();
+            }
         });
+
 
         // Kullanıcı Güncelleme
         updateButton.setOnClickListener(v -> {
@@ -88,24 +101,21 @@ public class AdminPanelActivity extends AppCompatActivity {
                     return;
                 }
 
-                // Eğer güncellenen kullanıcı, giriş yapan kullanıcı ise sadece şifreyi değiştirebilir
-                if (selectedUser.getId() == currentUser.getId()) {
-                    selectedUser.setPassword(password);
-                } else {
-                    selectedUser.setPassword(password);
-                    selectedUser.setRole(role);  // Adminse, rolü de değiştirebilir
-                }
+                // Güncelleme işlemi
+                selectedUser.setPassword(password);
+                selectedUser.setRole(role);
 
-                userRepository.updateUser(selectedUser);
+                try {
+                    userRepository.updateUser(selectedUser);
+                } catch (DatabaseConnectionException e) {
+                    Toast.makeText(this, "Error: " + e, Toast.LENGTH_SHORT).show();
+
+                }
                 loadUserList();
                 clearInputs();
-                selectedUser = null; // Seçilen kullanıcıyı null yap
-                updateButton.setVisibility(View.INVISIBLE); // Güncelleme butonunu gizle
-                addButton.setVisibility(View.VISIBLE); // Ekleme butonunu tekrar göster
-
-                // Re-enable the fields after update
-                usernameEditText.setEnabled(true); // Enable username field
-                roleSpinner.setEnabled(true); // Enable role spinner
+                selectedUser = null;
+                updateButton.setVisibility(View.INVISIBLE);
+                addButton.setVisibility(View.VISIBLE);
             } else {
                 Toast.makeText(this, "Güncellemek için bir kullanıcı seçin!", Toast.LENGTH_SHORT).show();
             }
@@ -119,42 +129,20 @@ public class AdminPanelActivity extends AppCompatActivity {
             roleSpinner.setSelection(((ArrayAdapter<Role>) roleSpinner.getAdapter()).getPosition(selectedUser.getRole()));
 
             // Disable username and role for update
-            usernameEditText.setEnabled(false); // Disable username field
-            roleSpinner.setEnabled(false); // Disable role spinner
+            usernameEditText.setEnabled(false);
+            roleSpinner.setEnabled(false);
 
-            addButton.setVisibility(View.INVISIBLE); // Ekleme butonunu gizle
-            updateButton.setVisibility(View.VISIBLE); // Güncelleme butonunu göster
+            addButton.setVisibility(View.INVISIBLE);
+            updateButton.setVisibility(View.VISIBLE);
         });
-
-        // Kullanıcı Listesi uzun tıklama işlemi (Silme onayı)
-        userListView.setOnItemLongClickListener((parent, view, position, id) -> handleUserDeletion(position));
-    }
-
-    private boolean handleUserDeletion(int position) {
-        User userToDelete = users.get(position);
-
-        if (userToDelete.getId() == currentUser.getId()) {
-            Toast.makeText(this, "Kendi kullanıcıyı silemezsin!", Toast.LENGTH_SHORT).show();
-            return true; // Return true to indicate the event is consumed
-        }
-
-        new AlertDialog.Builder(this)
-                .setTitle("Kullanıcıyı Sil")
-                .setMessage("Bu kullanıcıyı silmek istediğinizden emin misiniz?")
-                .setPositiveButton("Evet", (dialog, which) -> {
-                    userRepository.deleteUser(userToDelete.getId());
-                    loadUserList();
-                    Toast.makeText(this, "Kullanıcı silindi", Toast.LENGTH_SHORT).show();
-                })
-                .setNegativeButton("Hayır", null)
-                .show();
-
-        return true; // Return true to indicate the event is consumed
     }
 
     private void loadUserList() {
-        users = userRepository.getUsersByRole(currentUser.getRole()); // Admin sadece User'ları görür
-
+        try {
+            users = userRepository.getUsersByRole(currentUser.getRole());
+        } catch (DatabaseConnectionException e) {
+            Toast.makeText(this, "Error: " + e, Toast.LENGTH_SHORT).show();
+        }
         adapter = new ArrayAdapter<>(this, android.R.layout.simple_list_item_1, users);
         userListView.setAdapter(adapter);
     }
@@ -162,16 +150,12 @@ public class AdminPanelActivity extends AppCompatActivity {
     private void clearInputs() {
         usernameEditText.setText("");
         passwordEditText.setText("");
-        roleSpinner.setSelection(0); // İlk rolü seç
-        usernameEditText.setEnabled(true); // Enable username field
-        roleSpinner.setEnabled(true); // Enable role spinner
+        roleSpinner.setSelection(0);
+        usernameEditText.setEnabled(true);
+        roleSpinner.setEnabled(true);
     }
 
-    // Giriş yapan kullanıcıyı almak
     private User getCurrentUser() {
-        // Burada, oturum açan kullanıcının bilgilerini almak için bir yöntem kullanılmalı
-        // Örneğin, SharedPreferences veya SessionManager
-        // Şu an için varsayılan bir kullanıcı döndürüyoruz:
         return new User(1, "admin", "admin_password", Role.SUPER_USER);
     }
 }
