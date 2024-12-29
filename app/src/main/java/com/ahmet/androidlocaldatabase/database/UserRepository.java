@@ -29,7 +29,16 @@ public class UserRepository {
             db.insert(DatabaseHelper.TABLE_USERS, null, values);
         }
     }
+    public void deleteUser(int userId) {
+        SQLiteDatabase db = dbHelper.getWritableDatabase();
 
+        // Kullanıcıyı veritabanından sil
+        String whereClause = DatabaseHelper.COLUMN_ID + " = ?";
+        String[] whereArgs = {String.valueOf(userId)};
+
+        db.delete(DatabaseHelper.TABLE_USERS, whereClause, whereArgs);
+        db.close();
+    }
     public List<User> getUsersByRole(Role role) {
         List<User> userList = new ArrayList<>();
 
