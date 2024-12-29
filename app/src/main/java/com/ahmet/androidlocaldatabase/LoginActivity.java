@@ -3,64 +3,64 @@ package com.ahmet.androidlocaldatabase;
 import androidx.appcompat.app.AppCompatActivity;
 
 import android.content.Intent;
+import android.database.Cursor;
+import android.database.sqlite.SQLiteDatabase;
 import android.os.Bundle;
-import android.view.View;
 import android.widget.Button;
 import android.widget.EditText;
-import android.widget.TextView;
 import android.widget.Toast;
 
-public class LoginActivity extends AppCompatActivity {
+import com.ahmet.androidlocaldatabase.database.DatabaseHelper;
+import com.ahmet.androidlocaldatabase.database.DatabaseUtils;
+import com.ahmet.androidlocaldatabase.database.Role;
+import com.ahmet.androidlocaldatabase.database.User;
+import com.ahmet.androidlocaldatabase.database.UserRepository;
 
-    EditText nameText;
-    EditText passwordText;
-    Button loginButton;
-    private String adminName = "elk";
-    private  String adminPassword = "2005";
+public class LoginActivity extends AppCompatActivity {
+    private EditText usernameEditText;
+    private EditText passwordEditText;
+    private Button loginButton;
+    private UserRepository userRepository;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_login);
 
-        nameText = findViewById(R.id.nameEditText);
-        passwordText = findViewById(R.id.passwordEditText);
+        usernameEditText = findViewById(R.id.userNameEditText);
+        passwordEditText = findViewById(R.id.passwordEditText);
         loginButton = findViewById(R.id.loginButton);
 
-        DatabaseHelper dbHelper = new DatabaseHelper(this);
+        userRepository = new UserRepository(this);
 
-        loginButton.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
+        userRepository.addUser(new User(0, "a", "a", Role.SUPER_USER));
 
-                if (DatabaseUtils.isEmpty(nameText) && DatabaseUtils.isEmpty(passwordText)){
-                    Toast.makeText(LoginActivity.this, "İsim veya şifre boş!!!", Toast.LENGTH_SHORT).show();
-                }
-                else{
-                    //Is admin
-                    if (adminName.equals(String.valueOf(nameText.getText()) )&& adminPassword.equals(String.valueOf(passwordText.getText()))){
-                        Intent intent = new Intent(LoginActivity.this, AdminPanelActivity.class);
+        loginButton.setOnClickListener(v -> {
+            String username = usernameEditText.getText().toString().trim();
+            String password = passwordEditText.getText().toString().trim();
 
-                        startActivity(intent);
-                    }
-                    //Normal user
-                    else{
-                        if (dbHelper.checkUser(String.valueOf(nameText.getText()), String.valueOf(passwordText.getText()))){
-                            Intent intent = new Intent(LoginActivity.this, MainActivity.class);
-                            startActivity(intent);
-                            Toast.makeText(LoginActivity.this, "Kullanıcı Bilgileri Doğru ", Toast.LENGTH_SHORT).show();
-
-                        }
-                        else{
-                            Toast.makeText(LoginActivity.this, "Kullanıcı bilgileri yanlış", Toast.LENGTH_SHORT).show();
-                        }
-                    }
-
-
-                    nameText.setText("");
-                    passwordText.setText("");
-                }
+            if (username.isEmpty() || password.isEmpty()) {
+                Toast.makeText(this, "Lütfen tüm alanları doldurun!", Toast.LENGTH_SHORT).show();
+                return;
             }
-        });
 
+            User user = userRepository.getUser(username, password);
+            if (user == null) {
+                Toast.makeText(this, "Hatalı kullanıcı adı veya şifre!", Toast.LENGTH_SHORT).show();
+                return;
+            }
+
+            navigateToRoleSpecificActivity(user.getRole());
+        });
+    }
+
+    private void navigateToRoleSpecificActivity(Role role) {
+        Intent intent;
+        if (role == Role.ADMIN || role == Role.SUPER_USER) {
+            intent = new Intent(this, AdminPanelActivity.class);
+        } else {
+            intent = new Intent(this, MainActivity.class);
+        }
+        startActivity(intent);
     }
 }

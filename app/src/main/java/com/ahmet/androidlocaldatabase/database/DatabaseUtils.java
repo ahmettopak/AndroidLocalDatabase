@@ -1,4 +1,4 @@
-package com.ahmet.androidlocaldatabase;
+package com.ahmet.androidlocaldatabase.database;
 
 import android.text.TextUtils;
 import android.widget.EditText;
